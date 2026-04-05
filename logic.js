@@ -140,7 +140,7 @@ export default class IAM {
 
       createRole: (ctx) => {
         const { name, description, permissions } = ctx.body;
-        if (!name) return { status: 400, data: { error: 'name is required' } };
+        // name validation now handled by manifest validate: block
         const existing = this.data.query('roles', { name });
         if (existing.length > 0) return { status: 409, data: { error: 'Role already exists' } };
         const role = this.data.insert('roles', {
@@ -203,7 +203,7 @@ export default class IAM {
       assignRole: (ctx) => {
         const userId = ctx.params.userId;
         const { role_id, scope_type, scope_id } = ctx.body;
-        if (!role_id) return { status: 400, data: { error: 'role_id is required' } };
+        // role_id validation now handled by manifest validate: block
         const role = this.data.find('roles', role_id);
         if (!role) return { status: 404, data: { error: 'Role not found' } };
 
@@ -369,9 +369,7 @@ export default class IAM {
 
       saveSearch: (ctx) => {
         const { query, results_count } = ctx.body;
-        if (!query) {
-          return { status: 400, data: { error: 'query is required' } };
-        }
+        // query validation now handled by manifest validate: block
         const entry = this.data.insert('search_history', {
           user_id: ctx.currentUser.id,
           query,
@@ -388,11 +386,9 @@ export default class IAM {
 
       createTeam: (ctx) => {
         const { name, description } = ctx.body;
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-          return { status: 400, data: { error: 'name is required' } };
-        }
+        // name validation now handled by manifest validate: block
         const team = this.data.insert('teams', {
-          name: name.trim(),
+          name: name?.trim(),
           description: description || '',
         });
 
@@ -476,7 +472,7 @@ export default class IAM {
         if (!team) return { status: 404, data: { error: 'Team not found' } };
 
         const { user_id, role } = ctx.body;
-        if (!user_id) return { status: 400, data: { error: 'user_id is required' } };
+        // user_id validation now handled by manifest validate: block
 
         // Check if already a member
         const existing = this.data.query('team_members', { team_id: team.id, user_id });
@@ -533,15 +529,7 @@ export default class IAM {
   }
 
   signUp({ email, password, name }) {
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return { error: 'Valid email required' };
-    }
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      return { error: 'Password must be at least 8 characters' };
-    }
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return { error: 'Name is required' };
-    }
+    // Structural validation (email format, password presence, name presence) now handled by manifest validate: block
 
     const existing = this.data.query('users', { email });
     if (existing.length > 0) return { error: 'Unable to create account. Please try a different email or sign in.' };

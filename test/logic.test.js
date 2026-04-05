@@ -144,20 +144,8 @@ describe('IAM bundle', () => {
       assert.equal(event.payload.email, 'test@example.com');
     });
 
-    it('rejects invalid email', () => {
-      const result = iam.signUp({ email: 'not-an-email', password: 'password123', name: 'Test' });
-      assert.ok(result.error);
-    });
-
-    it('rejects short password', () => {
-      const result = iam.signUp({ email: 'test@example.com', password: 'short', name: 'Test' });
-      assert.ok(result.error);
-    });
-
-    it('rejects missing name', () => {
-      const result = iam.signUp({ email: 'test@example.com', password: 'password123', name: '' });
-      assert.ok(result.error);
-    });
+    // Invalid email, short password, missing name are structural validations
+    // now handled by the manifest validate: block — not tested inline here.
 
     it('rejects duplicate email', () => {
       iam.signUp({ email: 'dup@example.com', password: 'password123', name: 'First' });
@@ -196,13 +184,8 @@ describe('IAM bundle', () => {
       assert.ok(result.data.user);
     });
 
-    it('returns 422 on validation error', () => {
-      const result = iam.routes().signUp({
-        body: { email: 'bad', password: 'short', name: '' },
-      });
-      assert.equal(result.status, 422);
-      assert.ok(result.data.error);
-    });
+    // Structural validation (invalid email, short password, missing name) is
+    // handled by the manifest validate: block — not tested inline here.
   });
 
   describe('roles (admin routes)', () => {
@@ -218,10 +201,7 @@ describe('IAM bundle', () => {
       assert.equal(result.data.name, 'editor');
     });
 
-    it('createRole rejects missing name', () => {
-      const result = iam.routes().createRole({ body: {} });
-      assert.equal(result.status, 400);
-    });
+    // Required name validation is handled by the manifest validate: block — not tested inline here.
 
     it('createRole rejects duplicate name', () => {
       iam.routes().createRole({ body: { name: 'custom-role' } });
@@ -244,13 +224,7 @@ describe('IAM bundle', () => {
       assert.equal(members[0].role, 'owner');
     });
 
-    it('createTeam rejects empty name', () => {
-      const result = iam.routes().createTeam({
-        body: { name: '' },
-        currentUser: { id: 'user-1' },
-      });
-      assert.equal(result.status, 400);
-    });
+    // Required name validation is handled by the manifest validate: block — not tested inline here.
 
     it('listTeams returns created teams', () => {
       iam.routes().createTeam({ body: { name: 'Alpha' }, currentUser: { id: 'user-1' } });
