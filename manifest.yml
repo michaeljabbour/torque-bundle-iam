@@ -183,35 +183,134 @@ optional_deps:
 api:
   routes:
     # Identity
-    - { method: POST, path: /api/identity/sign_up, handler: signUp, auth: false }
-    - { method: POST, path: /api/identity/sign_in, handler: signIn, auth: false }
-    - { method: POST, path: /api/identity/refresh, handler: refreshToken, auth: false }
+    - method: POST
+      path: /api/identity/sign_up
+      handler: signUp
+      auth: false
+      validate:
+        body:
+          email: { required: true, type: string, pattern: "email" }
+          password: { required: true, type: string, min_length: 6 }
+          name: { required: true, type: string }
+    - method: POST
+      path: /api/identity/sign_in
+      handler: signIn
+      auth: false
+      validate:
+        body:
+          email: { required: true, type: string }
+          password: { required: true, type: string }
+    - method: POST
+      path: /api/identity/refresh
+      handler: refreshToken
+      auth: false
+      validate:
+        body:
+          refresh_token: { required: true, type: string }
     - { method: GET, path: /api/identity/me, handler: me, auth: true }
     # Admin
     - { method: GET, path: /api/admin/roles, handler: listRoles, auth: true }
-    - { method: POST, path: /api/admin/roles, handler: createRole, auth: true }
-    - { method: PATCH, path: "/api/admin/roles/:roleId", handler: updateRole, auth: true }
+    - method: POST
+      path: /api/admin/roles
+      handler: createRole
+      auth: true
+      validate:
+        body:
+          name: { required: true, type: string, min_length: 1, max_length: 100 }
+          description: { type: string }
+          permissions: { type: string }
+    - method: PATCH
+      path: "/api/admin/roles/:roleId"
+      handler: updateRole
+      auth: true
+      validate:
+        params:
+          roleId: { required: true, type: uuid }
+        body:
+          name: { type: string, min_length: 1, max_length: 100 }
+          description: { type: string }
+          permissions: { type: string }
     - { method: DELETE, path: "/api/admin/roles/:roleId", handler: deleteRole, auth: true }
     - { method: GET, path: /api/admin/users, handler: listUsers, auth: true }
     - { method: GET, path: "/api/admin/users/:userId/roles", handler: getUserRolesRoute, auth: true }
-    - { method: POST, path: "/api/admin/users/:userId/roles", handler: assignRole, auth: true }
+    - method: POST
+      path: "/api/admin/users/:userId/roles"
+      handler: assignRole
+      auth: true
+      validate:
+        params:
+          userId: { required: true, type: uuid }
+        body:
+          role_id: { required: true, type: uuid }
+          scope_type: { type: string }
+          scope_id: { type: uuid }
     - { method: DELETE, path: "/api/admin/users/:userId/roles/:roleId", handler: revokeRole, auth: true }
     - { method: GET, path: /api/admin/stats, handler: getStats, auth: true }
     # Profile
     - { method: GET, path: /api/profile, handler: getMyProfile, auth: true }
-    - { method: PATCH, path: /api/profile, handler: updateProfile, auth: true }
+    - method: PATCH
+      path: /api/profile
+      handler: updateProfile
+      auth: true
+      validate:
+        body:
+          display_name: { type: string, max_length: 255 }
+          bio: { type: string, max_length: 1000 }
+          avatar_url: { type: string }
+          timezone: { type: string }
     - { method: GET, path: /api/profile/settings, handler: getSettings, auth: true }
-    - { method: PATCH, path: /api/profile/settings, handler: updateSettings, auth: true }
+    - method: PATCH
+      path: /api/profile/settings
+      handler: updateSettings
+      auth: true
+      validate:
+        body:
+          theme: { type: string, enum: [light, dark, system] }
+          notification_email: { type: boolean }
+          notification_mentions: { type: boolean }
+          notification_due_dates: { type: boolean }
     - { method: GET, path: /api/profile/search-history, handler: getSearchHistory, auth: true }
-    - { method: POST, path: /api/profile/search-history, handler: saveSearch, auth: true }
+    - method: POST
+      path: /api/profile/search-history
+      handler: saveSearch
+      auth: true
+      validate:
+        body:
+          query: { required: true, type: string, min_length: 1 }
+          results_count: { type: integer, min: 0 }
     - { method: GET, path: "/api/profile/:userId", handler: getProfileByUserId, auth: true }
     # Teams
     - { method: GET, path: /api/teams, handler: listTeams, auth: true }
-    - { method: POST, path: /api/teams, handler: createTeam, auth: true }
-    - { method: PATCH, path: "/api/teams/:teamId", handler: updateTeam, auth: true }
+    - method: POST
+      path: /api/teams
+      handler: createTeam
+      auth: true
+      validate:
+        body:
+          name: { required: true, type: string, min_length: 1, max_length: 255 }
+          description: { type: string }
+    - method: PATCH
+      path: "/api/teams/:teamId"
+      handler: updateTeam
+      auth: true
+      validate:
+        params:
+          teamId: { required: true, type: uuid }
+        body:
+          name: { type: string, min_length: 1, max_length: 255 }
+          description: { type: string }
     - { method: DELETE, path: "/api/teams/:teamId", handler: deleteTeam, auth: true }
     - { method: GET, path: "/api/teams/:teamId/members", handler: listTeamMembers, auth: true }
-    - { method: POST, path: "/api/teams/:teamId/members", handler: addTeamMember, auth: true }
+    - method: POST
+      path: "/api/teams/:teamId/members"
+      handler: addTeamMember
+      auth: true
+      validate:
+        params:
+          teamId: { required: true, type: uuid }
+        body:
+          user_id: { required: true, type: uuid }
+          role: { type: string, enum: [owner, admin, member] }
     - { method: DELETE, path: "/api/teams/:teamId/members", handler: removeTeamMember, auth: true }
 
 ui:
