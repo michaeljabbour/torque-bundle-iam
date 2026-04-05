@@ -1,0 +1,19 @@
+{
+  "name": "@torquedev/bundle-iam",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "logic.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/torque-framework/torque-bundle-iam.git"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "uuid": "^13.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

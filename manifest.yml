@@ -1,0 +1,231 @@
+name: iam
+version: "1.0.0"
+description: "Identity, admin, profile, and teams — consolidated IAM bundle"
+
+schema:
+  tables:
+    users:
+      columns:
+        id: { type: uuid, primary: true }
+        email: { type: string, null: false, unique: true }
+        password_digest: { type: string, null: false }
+        name: { type: string }
+        role: { type: string, default: "user" }
+        created_at: { type: timestamp }
+        updated_at: { type: timestamp }
+    refresh_tokens:
+      columns:
+        id: { type: uuid, primary: true }
+        user_id: { type: uuid, null: false }
+        jti: { type: string, null: false, unique: true }
+        expires_at: { type: timestamp }
+        created_at: { type: timestamp }
+        updated_at: { type: timestamp }
+    revoked_tokens:
+      columns:
+        id: { type: uuid, primary: true }
+        jti: { type: text, required: true }
+        user_id: { type: text, required: true }
+        revoked_at: { type: text, required: true }
+        expires_at: { type: text, required: true }
+    roles:
+      columns:
+        id: { type: uuid, primary: true }
+        name: { type: string, null: false, unique: true }
+        description: { type: string }
+        permissions: { type: string }
+        created_at: { type: timestamp }
+        updated_at: { type: timestamp }
+    user_roles:
+      columns:
+        id: { type: uuid, primary: true }
+        user_id: { type: uuid, null: false }
+        role_id: { type: uuid, null: false }
+        scope_type: { type: string }
+        scope_id: { type: uuid }
+        created_at: { type: timestamp }
+    profiles:
+      columns:
+        id: { type: uuid, primary: true }
+        user_id: { type: uuid, null: false, unique: true }
+        display_name: { type: string }
+        bio: { type: string }
+        avatar_url: { type: string }
+        timezone: { type: string, default: "UTC" }
+        theme: { type: string, default: "dark" }
+        notification_email: { type: integer, default: 1 }
+        notification_mentions: { type: integer, default: 1 }
+        notification_due_dates: { type: integer, default: 1 }
+        created_at: { type: timestamp }
+        updated_at: { type: timestamp }
+    search_history:
+      columns:
+        id: { type: uuid, primary: true }
+        user_id: { type: uuid, null: false }
+        query: { type: string, null: false }
+        results_count: { type: integer, default: 0 }
+        created_at: { type: timestamp }
+    teams:
+      columns:
+        id: { type: uuid, primary: true }
+        name: { type: string, null: false }
+        description: { type: string }
+        created_at: { type: timestamp }
+        updated_at: { type: timestamp }
+    team_members:
+      columns:
+        id: { type: uuid, primary: true }
+        team_id: { type: uuid, null: false }
+        user_id: { type: uuid, null: false }
+        role: { type: string, default: "member" }
+        created_at: { type: timestamp }
+        updated_at: { type: timestamp }
+
+events:
+  publishes:
+    - name: iam.user.authenticated
+      schema: { user_id: uuid, email: string }
+    - name: iam.session.created
+      schema: { user_id: uuid, jti: string }
+    - name: iam.auth.failed
+      schema: { email: string, reason: string, timestamp: string }
+    - name: iam.session.revoked
+      schema: { user_id: uuid, revoked_count: integer }
+    - name: iam.role.assigned
+      schema: { user_id: uuid, role_id: uuid, scope_type: string, scope_id: uuid }
+    - name: iam.role.revoked
+      schema: { user_id: uuid, role_id: uuid }
+    - name: iam.profile.updated
+      schema: { user_id: uuid, changes: object }
+    - name: iam.team.created
+      schema: { team_id: uuid, name: string }
+    - name: iam.team.updated
+      schema: { team_id: uuid, changes: object }
+    - name: iam.team.deleted
+      schema: { team_id: uuid }
+    - name: iam.team.member_added
+      schema: { team_id: uuid, user_id: uuid, role: string }
+    - name: iam.team.member_removed
+      schema: { team_id: uuid, user_id: uuid }
+  subscribes:
+    - iam.user.authenticated
+
+intents: []
+
+interfaces:
+  queries:
+    - getUser
+    - validateToken
+    - revokeUserSessions
+    - hasRole
+    - getUserRoles
+    - hasPermission
+    - getProfile
+    - getUserPreferences
+  contracts:
+    getUser:
+      description: "Retrieve a user by ID"
+      input: { userId: { type: uuid, required: true } }
+      output:
+        type: object
+        nullable: true
+        shape: { id: uuid, email: string, name: string, role: string }
+    validateToken:
+      description: "Validate a JWT token and return the user"
+      input: { token: { type: string, required: true } }
+      output:
+        type: object
+        nullable: true
+        shape: { id: uuid, email: string, name: string, role: string }
+    revokeUserSessions:
+      description: "Revoke all active sessions for a user"
+      input: { userId: { type: uuid, required: true } }
+      output:
+        type: object
+        shape: { revoked: integer }
+    hasRole:
+      description: "Check if user has a specific role"
+      input: { userId: { type: uuid, required: true }, roleName: { type: string, required: true }, scopeType: { type: string }, scopeId: { type: uuid } }
+      output:
+        type: object
+        shape: { hasRole: integer }
+    getUserRoles:
+      description: "Get all roles for a user"
+      input: { userId: { type: uuid, required: true } }
+      output:
+        type: array
+        shape: { role_name: string, scope_type: string, scope_id: uuid }
+    hasPermission:
+      description: "Check if user has a specific permission"
+      input: { userId: { type: uuid, required: true }, permission: { type: string, required: true } }
+      output:
+        type: object
+        shape: { allowed: integer }
+    getProfile:
+      description: "Get user profile by user ID"
+      input: { userId: { type: uuid, required: true } }
+      output:
+        type: object
+        nullable: true
+        shape: { user_id: uuid, display_name: string, bio: string, avatar_url: string, timezone: string }
+    getUserPreferences:
+      description: "Get notification and theme preferences"
+      input: { userId: { type: uuid, required: true } }
+      output:
+        type: object
+        shape: { theme: string, notification_email: boolean, notification_mentions: boolean }
+
+depends_on: []
+optional_deps:
+  - kanban-app
+  - kanban
+
+api:
+  routes:
+    # Identity
+    - { method: POST, path: /api/identity/sign_up, handler: signUp, auth: false }
+    - { method: POST, path: /api/identity/sign_in, handler: signIn, auth: false }
+    - { method: POST, path: /api/identity/refresh, handler: refreshToken, auth: false }
+    - { method: GET, path: /api/identity/me, handler: me, auth: true }
+    # Admin
+    - { method: GET, path: /api/admin/roles, handler: listRoles, auth: true }
+    - { method: POST, path: /api/admin/roles, handler: createRole, auth: true }
+    - { method: PATCH, path: "/api/admin/roles/:roleId", handler: updateRole, auth: true }
+    - { method: DELETE, path: "/api/admin/roles/:roleId", handler: deleteRole, auth: true }
+    - { method: GET, path: /api/admin/users, handler: listUsers, auth: true }
+    - { method: GET, path: "/api/admin/users/:userId/roles", handler: getUserRolesRoute, auth: true }
+    - { method: POST, path: "/api/admin/users/:userId/roles", handler: assignRole, auth: true }
+    - { method: DELETE, path: "/api/admin/users/:userId/roles/:roleId", handler: revokeRole, auth: true }
+    - { method: GET, path: /api/admin/stats, handler: getStats, auth: true }
+    # Profile
+    - { method: GET, path: /api/profile, handler: getMyProfile, auth: true }
+    - { method: PATCH, path: /api/profile, handler: updateProfile, auth: true }
+    - { method: GET, path: /api/profile/settings, handler: getSettings, auth: true }
+    - { method: PATCH, path: /api/profile/settings, handler: updateSettings, auth: true }
+    - { method: GET, path: /api/profile/search-history, handler: getSearchHistory, auth: true }
+    - { method: POST, path: /api/profile/search-history, handler: saveSearch, auth: true }
+    - { method: GET, path: "/api/profile/:userId", handler: getProfileByUserId, auth: true }
+    # Teams
+    - { method: GET, path: /api/teams, handler: listTeams, auth: true }
+    - { method: POST, path: /api/teams, handler: createTeam, auth: true }
+    - { method: PATCH, path: "/api/teams/:teamId", handler: updateTeam, auth: true }
+    - { method: DELETE, path: "/api/teams/:teamId", handler: deleteTeam, auth: true }
+    - { method: GET, path: "/api/teams/:teamId/members", handler: listTeamMembers, auth: true }
+    - { method: POST, path: "/api/teams/:teamId/members", handler: addTeamMember, auth: true }
+    - { method: DELETE, path: "/api/teams/:teamId/members", handler: removeTeamMember, auth: true }
+
+ui:
+  script: ui/index.js
+  routes:
+    - { path: /login, component: login-page }
+    - { path: /admin, component: admin-dashboard, fetchUrls: ["/api/admin/stats"] }
+    - { path: /admin/roles, component: role-manager, fetchUrls: ["/api/admin/roles"] }
+    - { path: /admin/users, component: user-manager, fetchUrls: ["/api/admin/users"] }
+    - { path: /profile, component: profile-page, fetchUrls: ["/api/profile"] }
+    - { path: /settings, component: settings-page, fetchUrls: ["/api/profile/settings"] }
+    - { path: /teams, component: teams-page, fetchUrls: ["/api/teams"] }
+  navigation:
+    - { label: "Admin", icon: "admin", path: /admin }
+    - { label: "Teams", icon: "team", path: /teams }
+
+behaviors: []
